@@ -10,7 +10,6 @@ Este é um sistema completo para **compra, gerenciamento e validação de ingres
 ticketing-system/
 │── backend/        # Backend em Go
 │── frontend/       # App React Native
-│── database/       # Configuração do PostgreSQL
 │── docker-compose.yml  # Orquestração Docker
 ```
 
@@ -114,7 +113,7 @@ npm install -g expo-cli
 
 - **Backend:** Go, Gorilla Mux, GORM, JWT, M-Pesa API
 - **Frontend:** React Native, React Navigation, Axios, QRCode Scanner, Expo Go
-- **Infraestrutura:** Docker, PostgreSQL
+- **Infraestrutura:** Docker
 
 ---
 
@@ -154,7 +153,7 @@ docker ps
 docker exec -it nome-do-container-db psql -U usuario -d nome-do-banco
 ```
 
-Substitua `nome-do-container-db`, `usuario` e `nome-do-banco` conforme as credenciais configuradas no `docker-compose.yml`.
+Substitua `nome-do-container-postgres`, `usuario` e `nome-do-banco` conforme as credenciais configuradas no `docker-compose.yml`.
 
 ### 🛠️ 5. Rodar o aplicativo móvel no Expo Go
 
@@ -186,4 +185,5 @@ Escaneie o QR Code no terminal com o app Expo Go para rodar o app no seu celular
 
 ## 📊 Diagrama Entidade-Relacionamento (DER)
 
-*(Insira aqui a imagem do diagrama DER do banco de dados.)*
+![...](Diagrama/DER.jpeg)
+
