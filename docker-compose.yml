@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:latest
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: ticketing
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:  # 🔥 Adicionando um healthcheck para garantir que o DB esteja pronto antes do backend iniciar
+      test: ["CMD-SHELL", "pg_isready -U admin -d ticketing"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy  # 🔥 Corrigindo a indentação
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASSWORD: admin
+      DB_NAME: ticketing
+      JWT_SECRET: supersecret
+      MPESA_API_KEY: sua-chave-aqui
+
+volumes:
+  pgdata:
