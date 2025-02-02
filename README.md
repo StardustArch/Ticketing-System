@@ -150,7 +150,7 @@ Caso precise acessar o PostgreSQL diretamente dentro do contêiner, utilize os s
 docker ps
 
 # Acessar o contêiner do PostgreSQL
-docker exec -it nome-do-container-db psql -U usuario -d nome-do-banco
+docker exec -it nome-do-container-postgres psql -U usuario -d nome-do-banco
 ```
 
 Substitua `nome-do-container-postgres`, `usuario` e `nome-do-banco` conforme as credenciais configuradas no `docker-compose.yml`.
