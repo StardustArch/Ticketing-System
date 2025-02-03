@@ -14,22 +14,21 @@ func CreateTicket(w http.ResponseWriter, r *http.Request) {
 	// Verifica se o usuário está autenticado
 	user, err := services.VerifyToken(w, r)
 	if err != nil {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
 		return
 	}
 
 	// Parse do corpo da requisição
 	var ticketRequest struct {
 		EventID uuid.UUID `json:"event_id" binding:"required"`
-		QRCode  string    `json:"qr_code" binding:"required"`
-		Token   string    `json:"token" binding:"required"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&ticketRequest); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "Corpo da requisição inválido", http.StatusBadRequest)
 		return
 	}
 
 	// Chama a função de service para criar o ticket
-	ticket, err := services.CreateTicket(ticketRequest.EventID, user.ID, ticketRequest.QRCode, ticketRequest.Token)
+	ticket, err := services.CreateTicket(ticketRequest.EventID, user.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

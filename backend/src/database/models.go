@@ -47,15 +47,17 @@ type Event struct {
 
 // Modelo de Ticket
 type Ticket struct {
-	ID       uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	EventID  uuid.UUID `gorm:"type:uuid;not null"`
-	Event    Event     `gorm:"foreignKey:EventID;constraint:OnDelete:CASCADE"`
-	UserID   uuid.UUID `gorm:"type:uuid;not null"`
-	User     User      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	QRCode   string    `gorm:"unique;not null"`
-	Token    string    `gorm:"unique;not null"`
-	Status   string    `gorm:"not null;check:status IN ('valido', 'usado', 'cancelado');default:'valido'"`
+	ID            uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	EventID       uuid.UUID `gorm:"type:uuid;not null"`
+	Event         Event     `gorm:"foreignKey:EventID;constraint:OnDelete:CASCADE"`
+	UserID        uuid.UUID `gorm:"type:uuid;not null"`
+	User          User      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	QRCode        string    `gorm:"not null"`
+	QRCodeHash    string    `gorm:"unique;not null"` // Armazenando o hash MD5 do QR Code
+	Token         string    `gorm:"unique;not null"`
+	Status        string    `gorm:"not null;check:status IN ('valido', 'usado', 'cancelado');default:'valido'"`
 }
+
 
 // Modelo de Pagamento
 type Payment struct {

@@ -1,22 +1,53 @@
 package services
 
 import (
-	"github.com/google/uuid"
+	"crypto/md5"
+	"encoding/hex"
+	"errors"
 	"src/database"
+	"src/generator"
+
+	"github.com/google/uuid"
 )
 
+// Função para gerar o hash MD5 do QR Code
+func generateQRCodeHash(qrCode string) string {
+	hash := md5.Sum([]byte(qrCode))
+	return hex.EncodeToString(hash[:])
+}
+
 // Função para criar um ticket
-func CreateTicket(eventID uuid.UUID, userID uuid.UUID, qrCode string, token string) (*database.Ticket, error) {
-	// Cria um novo ticket
-	ticket := database.Ticket{
-		EventID: eventID,
-		UserID:  userID,
-		QRCode:  qrCode,
-		Token:   token,
-		Status:  "valido", // Default: 'valido'
+func CreateTicket(eventID uuid.UUID, userID uuid.UUID) (*database.Ticket, error) {
+	// Gerar um ID único para o ticket
+	ticketID := uuid.New()
+
+	// Gerar o token JWT para o ticket
+	token, err := generator.GenerateTicketToken(ticketID, eventID, userID)
+	if err != nil {
+		return nil, errors.New("erro ao gerar token do ticket")
 	}
 
-	// Salva o ticket no banco de dados
+	// Gerar o QR Code do ticket baseado no token
+	qrCode, err := generator.GenerateNeonQRCode(token)
+	if err != nil {
+		return nil, errors.New("erro ao gerar QR Code do ticket")
+	}
+
+	// Gerar o hash MD5 do QR Code
+	qrCodeHash := generateQRCodeHash(qrCode)
+
+	// Criar o ticket no banco de dados
+	ticket := database.Ticket{
+		ID:         ticketID,
+		EventID:    eventID,
+		UserID:     userID,
+		QRCode:     qrCode,
+		QRCodeHash: qrCodeHash, // Salvar o hash MD5
+		Token:      token,
+		Status:     "valido",
+	}
+
+	// Salvar no banco de dados
 	if err := database.DB.Create(&ticket).Error; err != nil {
 		return nil, err
 	}
