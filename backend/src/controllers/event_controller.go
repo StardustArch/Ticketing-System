@@ -157,3 +157,23 @@ func DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	// Retorna sucesso
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// Função para listar todos os eventos futuros
+func GetFutureEvents(w http.ResponseWriter, r *http.Request) {
+	// Verifica se o usuário está autenticado
+	_, err := services.VerifyToken(w, r)
+	if err != nil {
+		return
+	}
+
+	// Chama a função de service para listar os eventos futuros
+	events, err := services.GetFutureEvents()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Retorna a lista de eventos futuros
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(events)
+}

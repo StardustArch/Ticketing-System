@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
-import { MaterialIcons } from '@expo/vector-icons'; // Ícones modernos
+import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getUserProfile, updateUserProfile, updatePassword } from '../services/userService';
+import { logout } from '../services/authService';
+import { useNavigation } from '@react-navigation/native'; // Para redirecionar após logout
+import { RootStackParamList } from '../types';
+import { StackNavigationProp } from '@react-navigation/stack';
 
 const Profile = () => {
   const [user, setUser] = useState<{ Name: string; Email: string } | null>(null);
@@ -13,19 +17,19 @@ const Profile = () => {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  type NavigationProps = StackNavigationProp<RootStackParamList, 'Profile'>;
+
+const navigation = useNavigation<NavigationProps>();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      console.log('🔵 fetchUserProfile iniciado...');
       try {
         const data = await getUserProfile();
-        console.log('✅ fetchUserProfile sucesso:', data);
         setUser(data);
         setNewName(data.Name);
         setNewEmail(data.Email);
       } catch (err) {
         setError('Erro ao carregar dados do usuário');
-        console.error('❌ fetchUserProfile erro:', err);
       } finally {
         setLoading(false);
       }
@@ -58,22 +62,42 @@ const Profile = () => {
     }
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Sair da Conta',
+      'Tem certeza que deseja sair?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Sair', 
+          onPress: async () => {
+            console.log('🔵 Usuário clicou em Sair...');
+            await logout(); // Remove o token do AsyncStorage
+            console.log('✅ Logout concluído!');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' as keyof RootStackParamList }], // Garante que TypeScript reconhece a rota
+            });
+          },
+          style: 'destructive'
+        }
+      ]
+    );
+  };
+
+
   if (loading) {
     return (
-      <View>
-        <center>
+      <View style={styles.centered}>
         <ActivityIndicator size="large" color="#00ffcc" />
-        </center>      
       </View>
     );
   }
 
   if (error) {
     return (
-      <View>
-        <center>
+      <View style={styles.centered}>
         <Text style={styles.errorText}>{error}</Text>
-        </center>
       </View>
     );
   }
@@ -90,7 +114,6 @@ const Profile = () => {
               label="Nome"
               value={newName}
               onChangeText={setNewName}
-              // mode="outlined"
               theme={{ colors: { primary: '#00ffcc' } }}
               style={styles.input}
             />
@@ -98,7 +121,6 @@ const Profile = () => {
               label="Email"
               value={newEmail}
               onChangeText={setNewEmail}
-              // mode="outlined"
               theme={{ colors: { primary: '#00ffcc' } }}
               style={styles.input}
             />
@@ -126,7 +148,6 @@ const Profile = () => {
               label="Nova Senha"
               value={newPassword}
               onChangeText={setNewPassword}
-              // mode="outlined"
               secureTextEntry
               theme={{ colors: { primary: '#00ffcc' } }}
               style={styles.input}
@@ -137,6 +158,12 @@ const Profile = () => {
             </Button>
           </>
         )}
+
+        {/* Botão de Logout */}
+        <Button mode="contained" onPress={handleLogout} style={styles.logoutButton}>
+          <MaterialIcons name="logout" size={20} color="white" />
+          {'  '}Sair
+        </Button>
       </View>
     </LinearGradient>
   );
@@ -145,6 +172,11 @@ const Profile = () => {
 // **Estilos neon**
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -193,6 +225,17 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 10,
     shadowColor: '#00ffcc',
+    shadowOpacity: 0.9,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  logoutButton: {
+    backgroundColor: 'red',
+    paddingVertical: 8,
+    borderRadius: 8,
+    width: '100%',
+    marginTop: 20,
+    shadowColor: 'red',
     shadowOpacity: 0.9,
     shadowRadius: 10,
     elevation: 10,

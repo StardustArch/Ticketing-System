@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import config from '../config/config'; // Importe a configuração
 
 // **Função para obter as informações do usuário**
 export const getUserProfile = async () => {
@@ -14,11 +15,12 @@ export const getUserProfile = async () => {
 
   try {
     console.log('📡 Enviando requisição para /user...');
-    const response = await fetch('http://localhost:8080/user', {
+    const response = await fetch(config.apiUrl+'/user', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
+        'ngrok-skip-browser-warning': 'true',
       },
     });
 
@@ -53,11 +55,12 @@ export const updateUserProfile = async (updatedData: { Name: string; Email: stri
 
   try {
     console.log('📡 Enviando requisição para atualizar perfil...');
-    const response = await fetch('http://localhost:8080/user', { // Substitua pela sua rota de atualização
+    const response = await fetch(config.apiUrl+'/user', { // Substitua pela sua rota de atualização
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify(updatedData),
     });
@@ -93,11 +96,12 @@ export const updatePassword = async (newPassword: string) => {
 
   try {
     console.log('📡 Enviando requisição para atualizar senha...');
-    const response = await fetch('http://localhost:8080/user/password', { // Substitua pela sua rota de alteração de senha
+    const response = await fetch(config.apiUrl+'/password', { // Substitua pela sua rota de alteração de senha
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify({ password: newPassword }),
     });

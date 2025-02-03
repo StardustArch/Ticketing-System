@@ -257,6 +257,7 @@ const styles = StyleSheet.create({
     color: '#00ffcc',
     textAlign: 'center',
     marginBottom: 20,
+    marginTop: 40,
   },
   noEventsText: {
     color: '#fff',

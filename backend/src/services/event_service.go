@@ -38,6 +38,28 @@ func GetEvents(organizerID uuid.UUID) ([]database.Event, error) {
 	return events, nil
 }
 
+// Função para buscar todos os eventos futuros
+func GetFutureEvents() ([]database.Event, error) {
+	var events []database.Event
+
+	// Busca todos os eventos no banco de dados
+	if err := database.DB.Find(&events).Error; err != nil {
+		return nil, err
+	}
+
+	// Filtra eventos cuja data é no futuro
+	var futureEvents []database.Event
+	currentTime := time.Now()
+	for _, event := range events {
+		if event.Date.After(currentTime) {
+			futureEvents = append(futureEvents, event)
+		}
+	}
+
+	return futureEvents, nil
+}
+
+
 // Função para buscar um evento específico
 func GetEvent(eventID uuid.UUID) (*database.Event, error) {
 	var event database.Event
