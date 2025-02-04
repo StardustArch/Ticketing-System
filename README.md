@@ -179,7 +179,8 @@ Escaneie o QR Code no terminal com o app Expo Go para rodar o app no seu celular
 
 ## 📷 Screenshots
 
-*(Adicione aqui capturas de tela do sistema quando disponíveis.)*
+![...](Diagrama/Screenshots/1.jpeg)![...](Diagrama/Screenshots/2.jpeg)
+![...](Diagrama/Screenshots/3.jpeg)
 
 ---
 
