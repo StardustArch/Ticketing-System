@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, FlatList, StyleSheet } from 'react-native';
+import { 
+  View, Text, ActivityIndicator, FlatList, StyleSheet, 
+  TouchableOpacity, Modal, Alert 
+} from 'react-native';
 import { getFutureEvents } from '../../services/eventService';
+import { createTicket } from '../../services/ticketService';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Card } from 'react-native-paper';
+import { Card, Button } from 'react-native-paper';
+import Entypo from '@expo/vector-icons/Entypo';
 
 // Função para formatar a data
 const formatDate = (isoString: string) => {
@@ -19,25 +24,59 @@ interface Event {
   Date: string;
 }
 
+// Componente principal
 const BuyerEvents = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // Estado do pull-to-refresh
   const [error, setError] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  
+  // Função para carregar eventos
+  const loadEvents = async () => {
+    setRefreshing(true); // Inicia o refresh
+    try {
+      const futureEvents = await getFutureEvents();
+      if (Array.isArray(futureEvents)) {
+        setEvents(futureEvents);
+      } else {
+        setEvents([]);
+      }
+    } catch (err) {
+      setError('Não foi possível carregar os eventos. Tente novamente mais tarde.');
+    } finally {
+      setRefreshing(false); // Finaliza o refresh
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadEvents = async () => {
-      try {
-        const futureEvents = await getFutureEvents();
-        setEvents(futureEvents);
-      } catch (err) {
-        setError('Não foi possível carregar os eventos. Tente novamente mais tarde.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadEvents();
   }, []);
+
+  // Função para abrir o modal de compra
+  const handleBuyPress = (event: Event) => {
+    setSelectedEvent(event);
+    setModalVisible(true);
+  };
+
+  // Função para confirmar a compra
+  const handleConfirmPurchase = async () => {
+    if (!selectedEvent) return;
+    try {
+      console.log('🎟️ Solicitando ticket para o evento:', selectedEvent.ID);
+      const ticket = await createTicket({ event_id: selectedEvent.ID });
+      Alert.alert('Sucesso', 'Seu ticket foi gerado com sucesso! Veja em Tickets...');
+      console.log('🎟️ Ticket gerado:', ticket);
+    } catch (err) {
+      console.error('❌ Erro na compra do ticket:', err);
+      Alert.alert('Erro', 'Ocorreu um erro ao gerar seu ticket.');
+    } finally {
+      setModalVisible(false);
+      setSelectedEvent(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -59,12 +98,13 @@ const BuyerEvents = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Eventos Disponíveis</Text>
-      {events.length === 0 ? (
-        <Text style={styles.noEventsText}>Nenhum evento encontrado.</Text>
-      ) : (
+
+      {events.length > 0 ? (
         <FlatList
           data={events}
           keyExtractor={(item) => item.ID}
+          refreshing={refreshing} // Estado do pull-to-refresh
+          onRefresh={loadEvents} // Função chamada ao arrastar para baixo
           renderItem={({ item }) => (
             <Card style={styles.eventCard}>
               <Card.Title title={item.Name} titleStyle={styles.eventTitle} />
@@ -73,10 +113,52 @@ const BuyerEvents = () => {
                 <Text style={styles.eventText}>{item.Location}</Text>
                 <Text style={styles.eventDescription}>{item.Description}</Text>
               </Card.Content>
+              <Card.Actions>
+                <Button 
+                  mode="contained" 
+                  buttonColor="#00ffcc"
+                  textColor="#121212"
+                  onPress={() => handleBuyPress(item)}
+                >
+                  Comprar
+                </Button>
+              </Card.Actions>
             </Card>
           )}
         />
+      ) : (
+        <Text style={styles.noEventsText}>Nenhum evento encontrado.</Text>
       )}
+
+      {/* Modal de Confirmação */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalText}>
+              Deseja confirmar a compra do ticket para o evento "{selectedEvent?.Name}"?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]} 
+                onPress={handleConfirmPurchase}
+              >
+                <Text style={styles.modalButtonText}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -99,8 +181,7 @@ const styles = StyleSheet.create({
     color: '#00ffcc',
     textAlign: 'center',
     marginBottom: 20,
-    marginTop: 40,  // Adicionando margem superior para distanciar do topo
-
+    marginTop: 40,
   },
   loadingText: {
     color: '#fff',
@@ -116,12 +197,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e1e1e',
     borderRadius: 10,
     marginBottom: 10,
-    shadowColor: '#00ffcc',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 5,
     padding: 10,
+    elevation: 5,
   },
   eventTitle: {
     color: '#00ffcc',
@@ -141,6 +218,48 @@ const styles = StyleSheet.create({
     color: 'red',
     textAlign: 'center',
     fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  modalContainer: {
+    backgroundColor: '#1e1e1e',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalText: {
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: 'red',
+  },
+  confirmButton: {
+    backgroundColor: '#00ffcc',
+  },
+  modalButtonText: {
+    color: '#121212',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

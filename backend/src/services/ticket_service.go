@@ -18,6 +18,18 @@ func generateQRCodeHash(qrCode string) string {
 
 // Função para criar um ticket
 func CreateTicket(eventID uuid.UUID, userID uuid.UUID) (*database.Ticket, error) {
+	// Buscar o evento no banco de dados
+	var event database.Event
+	if err := database.DB.First(&event, "id = ?", eventID).Error; err != nil {
+		return nil, errors.New("evento não encontrado")
+	}
+
+	// Buscar o usuário no banco de dados
+	var user database.User
+	if err := database.DB.First(&user, "id = ?", userID).Error; err != nil {
+		return nil, errors.New("usuário não encontrado")
+	}
+
 	// Gerar um ID único para o ticket
 	ticketID := uuid.New()
 
@@ -27,22 +39,15 @@ func CreateTicket(eventID uuid.UUID, userID uuid.UUID) (*database.Ticket, error)
 		return nil, errors.New("erro ao gerar token do ticket")
 	}
 
-	// Gerar o QR Code do ticket baseado no token
-	qrCode, err := generator.GenerateNeonQRCode(token)
-	if err != nil {
-		return nil, errors.New("erro ao gerar QR Code do ticket")
-	}
-
 	// Gerar o hash MD5 do QR Code
-	qrCodeHash := generateQRCodeHash(qrCode)
 
-	// Criar o ticket no banco de dados
+	// Criar o ticket no banco de dados com os objetos de `User` e `Event`
 	ticket := database.Ticket{
 		ID:         ticketID,
 		EventID:    eventID,
+		Event:      event,  // Atribuir o evento
 		UserID:     userID,
-		QRCode:     qrCode,
-		QRCodeHash: qrCodeHash, // Salvar o hash MD5
+		User:       user,   // Atribuir o usuário
 		Token:      token,
 		Status:     "valido",
 	}
@@ -59,22 +64,39 @@ func CreateTicket(eventID uuid.UUID, userID uuid.UUID) (*database.Ticket, error)
 func GetTicketsByUser(userID uuid.UUID) ([]database.Ticket, error) {
 	var tickets []database.Ticket
 
-	// Busca todos os tickets do usuário
-	if err := database.DB.Where("user_id = ?", userID).Find(&tickets).Error; err != nil {
+	// Fazendo JOIN para carregar os detalhes do evento, organizador do evento e do usuário
+	err := database.DB.
+		Preload("Event").               // Carrega os detalhes do evento relacionado
+		Preload("Event.Organizer").     // Carrega o organizador do evento
+		Preload("User").                // Carrega os detalhes do usuário relacionado
+		Where("user_id = ?", userID).
+		Find(&tickets).Error
+
+	if err != nil {
 		return nil, err
 	}
 
 	return tickets, nil
 }
+
+
 
 // Função para listar tickets de um evento
 func GetTicketsByEvent(eventID uuid.UUID) ([]database.Ticket, error) {
 	var tickets []database.Ticket
 
-	// Busca todos os tickets do evento
-	if err := database.DB.Where("event_id = ?", eventID).Find(&tickets).Error; err != nil {
+	// JOINs para trazer informações completas
+	err := database.DB.
+		Preload("Event").
+		Preload("Event.Organizer").     // Carrega o organizador do evento
+		Preload("User").
+		Where("event_id = ?", eventID).
+		Find(&tickets).Error
+
+	if err != nil {
 		return nil, err
 	}
 
 	return tickets, nil
 }
+

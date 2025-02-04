@@ -1,24 +1,33 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"src/database"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Função para criar um evento
 func CreateEvent(name, description, location string, date time.Time, organizerID uuid.UUID) (*database.Event, error) {
-	// Cria um novo evento
+	// Buscar o organizador no banco de dados
+	var organizer database.User
+	if err := database.DB.First(&organizer, "id = ?", organizerID).Error; err != nil {
+		return nil, errors.New("organizador não encontrado")
+	}
+
+	// Criar o evento com o organizador setado
 	event := database.Event{
 		Name:        name,
 		Description: description,
 		Location:    location,
 		Date:        date,
 		OrganizerID: organizerID,
+		Organizer:   organizer, // Definir o organizador corretamente
 	}
 
-	// Salva o evento no banco de dados
+	// Salvar o evento no banco de dados
 	if err := database.DB.Create(&event).Error; err != nil {
 		return nil, err
 	}
@@ -26,24 +35,26 @@ func CreateEvent(name, description, location string, date time.Time, organizerID
 	return &event, nil
 }
 
+
 // Função para listar eventos de um organizador
 func GetEvents(organizerID uuid.UUID) ([]database.Event, error) {
 	var events []database.Event
 
-	// Busca todos os eventos do organizador
-	if err := database.DB.Where("organizer_id = ?", organizerID).Find(&events).Error; err != nil {
+	// Busca todos os eventos do organizador e carrega o organizador associado
+	if err := database.DB.Preload("Organizer").Where("organizer_id = ?", organizerID).Find(&events).Error; err != nil {
 		return nil, err
 	}
 
 	return events, nil
 }
 
+
 // Função para buscar todos os eventos futuros
 func GetFutureEvents() ([]database.Event, error) {
 	var events []database.Event
 
-	// Busca todos os eventos no banco de dados
-	if err := database.DB.Find(&events).Error; err != nil {
+	// Busca todos os eventos no banco de dados e carrega o organizador
+	if err := database.DB.Preload("Organizer").Find(&events).Error; err != nil {
 		return nil, err
 	}
 
@@ -59,14 +70,13 @@ func GetFutureEvents() ([]database.Event, error) {
 	return futureEvents, nil
 }
 
-
 // Função para buscar um evento específico
 func GetEvent(eventID uuid.UUID) (*database.Event, error) {
 	var event database.Event
 
-	// Busca o evento no banco de dados pelo ID
-	if err := database.DB.First(&event, "id = ?", eventID).Error; err != nil {
-		return nil, fmt.Errorf("event not found")
+	// Busca o evento no banco de dados pelo ID e carrega o organizador
+	if err := database.DB.Preload("Organizer").First(&event, "id = ?", eventID).Error; err != nil {
+		return nil, fmt.Errorf("evento não encontrado")
 	}
 
 	return &event, nil
